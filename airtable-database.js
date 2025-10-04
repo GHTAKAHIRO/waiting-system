@@ -180,80 +180,35 @@ class AirtableDatabase {
             localStorage.setItem('juku-airtable-data', JSON.stringify(this.data));
 
             if (this.isOnline) {
-                let response;
-                
-                // まず既存のレコードを取得
-                const existingResponse = await fetch(`${this.airtableUrl}/${this.baseId}/${this.tableId}?maxRecords=1`, {
+                // シンプルなPOSTリクエストで新しいレコードを作成
+                const response = await fetch(`${this.airtableUrl}/${this.baseId}/${this.tableId}`, {
+                    method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${this.apiKey}`
-                    }
+                        'Authorization': `Bearer ${this.apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        records: [{
+                            fields: {
+                                Data: JSON.stringify(this.data),
+                                LastUpdated: new Date().toISOString()
+                            }
+                        }]
+                    })
                 });
 
-                if (existingResponse.ok) {
-                    const existingData = await existingResponse.json();
-                    
-                    if (existingData.records && existingData.records.length > 0) {
-                        // 既存レコードを更新
-                        const recordId = existingData.records[0].id;
-                        response = await fetch(`${this.airtableUrl}/${this.baseId}/${this.tableId}`, {
-                            method: 'PATCH',
-                            headers: {
-                                'Authorization': `Bearer ${this.apiKey}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                records: [{
-                                    id: recordId,
-                                    fields: {
-                                        Data: JSON.stringify(this.data),
-                                        LastUpdated: new Date().toISOString()
-                                    }
-                                }]
-                            })
-                        });
-                    } else {
-                        // 新しいレコードを作成
-                        response = await fetch(`${this.airtableUrl}/${this.baseId}/${this.tableId}`, {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${this.apiKey}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                records: [{
-                                    fields: {
-                                        Data: JSON.stringify(this.data),
-                                        LastUpdated: new Date().toISOString()
-                                    }
-                                }]
-                            })
-                        });
-                    }
-                } else {
-                    // 新しいレコードを作成
-                    response = await fetch(`${this.airtableUrl}/${this.baseId}/${this.tableId}`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${this.apiKey}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            records: [{
-                                fields: {
-                                    Data: JSON.stringify(this.data),
-                                    LastUpdated: new Date().toISOString()
-                                }
-                            }]
-                        })
-                    });
-                }
-
-                if (response && response.ok) {
-                    console.log('Airtableにデータを保存しました:', this.data);
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Airtableにデータを保存しました:', result);
                     this.notifyListeners('dataSaved', this.data);
                     return true;
                 } else {
-                    console.error('Airtable保存に失敗しました:', response.status);
+                    const errorText = await response.text();
+                    console.error('❌ Airtable保存に失敗しました:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        error: errorText
+                    });
                     return false;
                 }
             } else {
@@ -332,17 +287,66 @@ class AirtableDatabase {
                     this.data.markingQueue.push(student);
             }
 
-            // データを保存
-            const success = await this.saveData();
+            // 個別の生徒データをAirtableに直接保存
+            const success = await this.saveStudentToAirtable(student);
             
             if (success) {
-                console.log('生徒を追加しました:', student.name);
+                console.log('✅ 生徒をAirtableに追加しました:', student.name);
                 this.notifyListeners('studentAdded', student);
             }
             
             return success;
         } catch (error) {
             console.error('生徒追加エラー:', error);
+            return false;
+        }
+    }
+
+    // 個別の生徒データをAirtableに保存
+    async saveStudentToAirtable(student) {
+        try {
+            if (!this.isOnline) {
+                console.log('📱 オフラインのため、ローカルストレージにのみ保存');
+                return true;
+            }
+
+            console.log('🚀 Airtableに生徒データを保存中:', student);
+
+            const response = await fetch(`${this.airtableUrl}/${this.baseId}/${this.tableId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    records: [{
+                        fields: {
+                            name: student.name,
+                            subject: student.subject,
+                            contentType: student.contentType,
+                            addedAt: new Date(student.addedAt).toISOString(),
+                            status: 'waiting'
+                        }
+                    }]
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('✅ 生徒データをAirtableに保存成功:', result);
+                return true;
+            } else {
+                const errorText = await response.text();
+                console.error('❌ 生徒データのAirtable保存に失敗:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: errorText,
+                    student: student
+                });
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ 生徒データ保存中にエラー:', error);
             return false;
         }
     }
