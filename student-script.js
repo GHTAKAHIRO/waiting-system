@@ -93,7 +93,7 @@ class StudentRegistration {
     }
 
     async registerStudent() {
-        console.log('registerStudentメソッドが呼び出されました');
+        console.log('registerStudentメソッドが呼び出されました - v3.0');
         
         const nameInput = document.getElementById('studentName');
         const subjectSelect = document.getElementById('subject');
