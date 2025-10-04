@@ -46,6 +46,15 @@ class StudentRegistration {
                 this.database = new window.AirtableDatabase();
                 this.database.init();
                 console.log('AirtableDatabaseを設定しました');
+                
+                // Airtableエラー時のフォールバック
+                setTimeout(() => {
+                    if (this.database && this.database.constructor.name === 'AirtableDatabase') {
+                        // Airtableが動作しない場合はlocalStorageにフォールバック
+                        console.log('Airtableが利用できないため、localStorageを使用します');
+                        this.database = null;
+                    }
+                }, 3000);
             } else {
                 // フォールバック: localStorageを使用
                 console.log('Airtableが利用できないため、localStorageを使用します');
@@ -53,6 +62,7 @@ class StudentRegistration {
             }
         } catch (error) {
             console.log('データベースシステムの設定でエラー:', error);
+            this.database = null;
         }
     }
 
@@ -169,6 +179,13 @@ class StudentRegistration {
 
     addToTeacherQueue(student) {
         try {
+            // Airtableが利用可能な場合はAirtableに保存
+            if (this.database && this.database.constructor.name === 'AirtableDatabase') {
+                console.log('Airtableに生徒を追加:', student);
+                this.database.addStudent(student);
+                return;
+            }
+            
             // 先生用のキューに追加（内容に応じて適切なリストに追加）
             console.log('addToTeacherQueue開始:', student);
         
