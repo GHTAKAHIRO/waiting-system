@@ -108,7 +108,7 @@ class AirtableDatabase {
     async loadData() {
         try {
             if (this.isOnline) {
-                const url = `${this.airtableUrl}/${this.baseId}/${this.tableId}?maxRecords=1&sort%5B0%5D%5Bfield%5D=LastUpdated&sort%5B0%5D%5Bdirection%5D=desc`;
+                const url = `${this.airtableUrl}/${this.baseId}/${this.tableId}?maxRecords=1`;
                 console.log('🔍 Airtable URL:', url);
                 console.log('🔑 API Key (first 20 chars):', this.apiKey.substring(0, 20) + '...');
                 
@@ -222,7 +222,7 @@ class AirtableDatabase {
         if (!this.isOnline) return;
 
         try {
-            const response = await fetch(`${this.airtableUrl}/${this.baseId}/${this.tableId}?maxRecords=1&sort%5B0%5D%5Bfield%5D=LastUpdated&sort%5B0%5D%5Bdirection%5D=desc`, {
+            const response = await fetch(`${this.airtableUrl}/${this.baseId}/${this.tableId}?maxRecords=1`, {
                 headers: {
                     'Authorization': `Bearer ${this.apiKey}`
                 }
