@@ -27,7 +27,7 @@ class AirtableDatabase {
     }
 
     init() {
-        console.log('AirtableDatabaseを初期化しています');
+        console.log('AirtableDatabaseを初期化しています - v2.0');
         
         // 設定の検証
         if (this.baseId === 'YOUR_BASE_ID' || this.apiKey === 'YOUR_API_KEY') {
