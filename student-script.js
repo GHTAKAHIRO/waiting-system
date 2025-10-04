@@ -124,61 +124,108 @@ class StudentRegistration {
             // 先生用のキューに追加（内容に応じて適切なリストに追加）
             console.log('addToTeacherQueue開始:', student);
         
-        const teacherData = JSON.parse(localStorage.getItem('jukuManagementData') || '{"markingQueue":[],"retryQueue":[],"questionQueue":[]}');
-        console.log('読み込んだteacherData:', teacherData);
-        
-        // 古いデータ構造から新しいデータ構造に移行
-        if (teacherData.queue && !teacherData.markingQueue) {
-            console.log('古いデータ構造を新しい構造に移行');
-            teacherData.markingQueue = teacherData.queue;
-            delete teacherData.queue;
-        }
-        
-        // データ構造を確認して、存在しない場合は初期化
-        if (!teacherData.markingQueue) {
-            console.log('markingQueueを初期化');
-            teacherData.markingQueue = [];
-        }
-        if (!teacherData.retryQueue) {
-            console.log('retryQueueを初期化');
-            teacherData.retryQueue = [];
-        }
-        if (!teacherData.questionQueue) {
-            console.log('questionQueueを初期化');
-            teacherData.questionQueue = [];
-        }
-        
-        console.log('初期化後のteacherData:', teacherData);
-        
-        // 内容に応じて適切なキューに追加
-        console.log('switch文に入る前のcontentType:', student.contentType);
-        console.log('switch文に入る前のcontentTypeの型:', typeof student.contentType);
-        
-        switch (student.contentType) {
-            case '丸付け':
-                teacherData.markingQueue.push(student);
-                console.log('丸付けリストに追加:', student.name);
-                break;
-            case '質問':
-                teacherData.questionQueue.push(student);
-                console.log('質問リストに直接追加:', student.name);
-                break;
-            default:
-                // デフォルトは丸付けリストに追加
-                teacherData.markingQueue.push(student);
-                console.log('デフォルトで丸付けリストに追加:', student.name, 'contentType:', student.contentType);
-        }
-        
-        console.log('保存前の最終状態:');
-        console.log('丸付けリスト:', teacherData.markingQueue);
-        console.log('直しリスト:', teacherData.retryQueue);
-        console.log('質問リスト:', teacherData.questionQueue);
-        
-        localStorage.setItem('jukuManagementData', JSON.stringify(teacherData));
-        console.log('先生側のキューに追加しました:', student);
-        console.log('保存されたteacherData:', teacherData);
-        console.log('丸付けリストの人数:', teacherData.markingQueue.length);
-        console.log('質問リストの人数:', teacherData.questionQueue.length);
+            // 複数回試行してデータの整合性を確保
+            let success = false;
+            let attempts = 0;
+            const maxAttempts = 5;
+            
+            while (!success && attempts < maxAttempts) {
+                attempts++;
+                console.log(`データ保存試行 ${attempts}/${maxAttempts}`);
+                
+                try {
+                    const teacherData = JSON.parse(localStorage.getItem('jukuManagementData') || '{"markingQueue":[],"retryQueue":[],"questionQueue":[]}');
+                    console.log('読み込んだteacherData:', teacherData);
+                    
+                    // 古いデータ構造から新しいデータ構造に移行
+                    if (teacherData.queue && !teacherData.markingQueue) {
+                        console.log('古いデータ構造を新しい構造に移行');
+                        teacherData.markingQueue = teacherData.queue;
+                        delete teacherData.queue;
+                    }
+                    
+                    // データ構造を確認して、存在しない場合は初期化
+                    if (!teacherData.markingQueue) {
+                        console.log('markingQueueを初期化');
+                        teacherData.markingQueue = [];
+                    }
+                    if (!teacherData.retryQueue) {
+                        console.log('retryQueueを初期化');
+                        teacherData.retryQueue = [];
+                    }
+                    if (!teacherData.questionQueue) {
+                        console.log('questionQueueを初期化');
+                        teacherData.questionQueue = [];
+                    }
+                    
+                    console.log('初期化後のteacherData:', teacherData);
+                    
+                    // 内容に応じて適切なキューに追加
+                    console.log('switch文に入る前のcontentType:', student.contentType);
+                    console.log('switch文に入る前のcontentTypeの型:', typeof student.contentType);
+                    
+                    switch (student.contentType) {
+                        case '丸付け':
+                            teacherData.markingQueue.push(student);
+                            console.log('丸付けリストに追加:', student.name);
+                            break;
+                        case '質問':
+                            teacherData.questionQueue.push(student);
+                            console.log('質問リストに直接追加:', student.name);
+                            break;
+                        default:
+                            // デフォルトは丸付けリストに追加
+                            teacherData.markingQueue.push(student);
+                            console.log('デフォルトで丸付けリストに追加:', student.name, 'contentType:', student.contentType);
+                    }
+                    
+                    console.log('保存前の最終状態:');
+                    console.log('丸付けリスト:', teacherData.markingQueue);
+                    console.log('直しリスト:', teacherData.retryQueue);
+                    console.log('質問リスト:', teacherData.questionQueue);
+                    
+                    // データを保存
+                    localStorage.setItem('jukuManagementData', JSON.stringify(teacherData));
+                    
+                    // 保存を確認
+                    const savedData = localStorage.getItem('jukuManagementData');
+                    if (savedData) {
+                        const parsedData = JSON.parse(savedData);
+                        const targetQueue = student.contentType === '質問' ? parsedData.questionQueue : parsedData.markingQueue;
+                        const found = targetQueue.some(s => s.id === student.id);
+                        
+                        if (found) {
+                            console.log('データ保存確認成功:', student.name);
+                            success = true;
+                        } else {
+                            console.log('データ保存確認失敗、再試行します');
+                        }
+                    } else {
+                        console.log('データが保存されませんでした、再試行します');
+                    }
+                    
+                } catch (saveError) {
+                    console.error(`保存試行 ${attempts} でエラー:`, saveError);
+                    if (attempts < maxAttempts) {
+                        // 少し待ってから再試行
+                        setTimeout(() => {}, 100);
+                    }
+                }
+            }
+            
+            if (!success) {
+                console.error('最大試行回数に達しました。データの保存に失敗しました。');
+                this.showNotification('登録に失敗しました。もう一度お試しください。', 'error');
+            } else {
+                console.log('先生側のキューに追加しました:', student);
+                
+                // 追加の同期確認（storageイベントを手動で発火）
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'jukuManagementData',
+                    newValue: localStorage.getItem('jukuManagementData'),
+                    url: window.location.href
+                }));
+            }
         
         } catch (error) {
             console.error('addToTeacherQueueでエラーが発生しました:', error);

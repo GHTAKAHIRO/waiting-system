@@ -20,30 +20,71 @@ class TeacherManagement {
         // フォールバック: 定期的にデータを更新（生徒からの新しい登録を検知）
         setInterval(() => {
             this.checkForUpdates();
-        }, 10000);
+        }, 2000); // 10秒から2秒に短縮
     }
 
     setupStorageListener() {
-        // localStorageの変更を監視
+        // localStorageの変更を監視（他のタブからの変更）
         window.addEventListener('storage', (e) => {
+            console.log('Storageイベント検知:', e.key, e.newValue);
             if (e.key === 'jukuManagementData') {
+                console.log('jukuManagementDataの変更を検知、データを再読み込みします');
                 this.loadData();
                 this.updateDisplay();
+                
+                // 新しい生徒が追加された場合は通知音を再生
+                if (e.newValue) {
+                    try {
+                        const newData = JSON.parse(e.newValue);
+                        const oldData = JSON.parse(e.oldValue || '{"markingQueue":[],"retryQueue":[],"questionQueue":[]}');
+                        
+                        const newMarkingCount = (newData.markingQueue || []).length;
+                        const oldMarkingCount = (oldData.markingQueue || []).length;
+                        const newQuestionCount = (newData.questionQueue || []).length;
+                        const oldQuestionCount = (oldData.questionQueue || []).length;
+                        
+                        if (newMarkingCount > oldMarkingCount || newQuestionCount > oldQuestionCount) {
+                            console.log('新しい生徒の登録を検知、通知音を再生します');
+                            this.playNotificationSound();
+                        }
+                    } catch (error) {
+                        console.log('通知音判定でエラー:', error);
+                    }
+                }
             }
         });
         
         // 同じタブ内での変更も監視（storageイベントは他のタブでの変更のみ）
         const originalSetItem = localStorage.setItem;
         localStorage.setItem = function(key, value) {
+            const oldValue = localStorage.getItem(key);
             originalSetItem.apply(this, arguments);
             if (key === 'jukuManagementData') {
+                console.log('同じタブ内でのjukuManagementData変更を検知');
                 window.dispatchEvent(new Event('localStorageChange'));
+                
+                // 手動でstorageイベントを発火（他のタブに通知）
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: key,
+                    newValue: value,
+                    oldValue: oldValue,
+                    url: window.location.href
+                }));
             }
         };
         
         window.addEventListener('localStorageChange', () => {
+            console.log('localStorageChangeイベントを検知');
             this.loadData();
             this.updateDisplay();
+        });
+        
+        // ページの可視性変更時にもデータを確認
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                console.log('ページが表示されました、データを確認します');
+                this.checkForUpdates();
+            }
         });
     }
 
