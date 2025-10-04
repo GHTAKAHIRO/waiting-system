@@ -176,7 +176,7 @@ class StudentRegistration {
         }
     }
 
-    addToTeacherQueue(student) {
+    async addToTeacherQueue(student) {
         try {
             console.log('addToTeacherQueue開始:', student);
         
