@@ -6,6 +6,7 @@ class TeacherManagement {
         this.currentStudent = null;
         this.completedCount = 0;
         this.isUpdating = false; // 更新中フラグ
+        this.broadcastChannel = null;
         this.init();
     }
 
@@ -17,10 +18,34 @@ class TeacherManagement {
         // localStorageの変更を監視
         this.setupStorageListener();
         
+        // BroadcastChannelを設定
+        this.setupBroadcastChannel();
+        
+        // URLパラメータから新しい生徒データを読み取り
+        this.checkURLParameters();
+        
         // フォールバック: 定期的にデータを更新（生徒からの新しい登録を検知）
         setInterval(() => {
             this.checkForUpdates();
         }, 2000); // 10秒から2秒に短縮
+    }
+
+    setupBroadcastChannel() {
+        try {
+            this.broadcastChannel = new BroadcastChannel('juku-waiting-system');
+            this.broadcastChannel.addEventListener('message', (event) => {
+                console.log('BroadcastChannelでメッセージを受信:', event.data);
+                if (event.data.type === 'studentRegistered') {
+                    console.log('新しい生徒の登録を検知、データを更新します');
+                    this.loadData();
+                    this.updateDisplay();
+                    this.playNotificationSound();
+                }
+            });
+            console.log('BroadcastChannelを設定しました');
+        } catch (error) {
+            console.log('BroadcastChannelがサポートされていません:', error);
+        }
     }
 
     setupStorageListener() {
@@ -86,6 +111,71 @@ class TeacherManagement {
                 this.checkForUpdates();
             }
         });
+    }
+
+    checkURLParameters() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const newStudentData = urlParams.get('newStudent');
+            const timestamp = urlParams.get('timestamp');
+            
+            if (newStudentData && timestamp) {
+                console.log('URLパラメータから新しい生徒データを検出:', newStudentData);
+                
+                // Base64デコード
+                const studentData = JSON.parse(atob(newStudentData));
+                studentData.addedAt = new Date(studentData.addedAt);
+                
+                console.log('デコードされた生徒データ:', studentData);
+                
+                // データをキューに追加
+                this.addStudentFromURL(studentData);
+                
+                // URLをクリーンアップ（パラメータを削除）
+                const cleanURL = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanURL);
+                
+                console.log('URLパラメータをクリーンアップしました');
+            }
+        } catch (error) {
+            console.error('URLパラメータの処理でエラー:', error);
+        }
+    }
+
+    addStudentFromURL(student) {
+        try {
+            console.log('URLからの生徒データを追加:', student);
+            
+            // 内容に応じて適切なキューに追加
+            switch (student.contentType) {
+                case '丸付け':
+                    this.markingQueue.push(student);
+                    console.log('丸付けリストに追加:', student.name);
+                    break;
+                case '質問':
+                    this.questionQueue.push(student);
+                    console.log('質問リストに追加:', student.name);
+                    break;
+                default:
+                    this.markingQueue.push(student);
+                    console.log('デフォルトで丸付けリストに追加:', student.name);
+            }
+            
+            // データを保存
+            this.saveData();
+            
+            // 表示を更新
+            this.updateDisplay();
+            
+            // 通知音を再生
+            this.playNotificationSound();
+            
+            // 通知メッセージを表示
+            this.showNotification(`${student.name}さんが登録されました！`, 'success');
+            
+        } catch (error) {
+            console.error('URLからの生徒データ追加でエラー:', error);
+        }
     }
 
     checkForUpdates() {

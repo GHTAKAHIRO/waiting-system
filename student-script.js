@@ -1,14 +1,25 @@
 class StudentRegistration {
     constructor() {
         this.registeredStudent = null;
+        this.broadcastChannel = null;
         this.init();
     }
 
     init() {
         console.log('StudentRegistrationを初期化しています');
+        this.setupBroadcastChannel();
         this.bindEvents();
         this.loadRegisteredStudent();
         console.log('StudentRegistrationの初期化が完了しました');
+    }
+
+    setupBroadcastChannel() {
+        try {
+            this.broadcastChannel = new BroadcastChannel('juku-waiting-system');
+            console.log('BroadcastChannelを設定しました');
+        } catch (error) {
+            console.log('BroadcastChannelがサポートされていません:', error);
+        }
     }
 
     bindEvents() {
@@ -115,6 +126,9 @@ class StudentRegistration {
 
         this.showSuccessPopup();
         
+        // URLパラメータでデータを共有（より確実な方法）
+        this.shareDataViaURL(student);
+        
         // フォームをリセット
         this.resetForm();
     }
@@ -219,6 +233,20 @@ class StudentRegistration {
             } else {
                 console.log('先生側のキューに追加しました:', student);
                 
+                // BroadcastChannelで他のタブに通知
+                if (this.broadcastChannel) {
+                    try {
+                        this.broadcastChannel.postMessage({
+                            type: 'studentRegistered',
+                            student: student,
+                            timestamp: Date.now()
+                        });
+                        console.log('BroadcastChannelで通知を送信しました');
+                    } catch (error) {
+                        console.log('BroadcastChannelでの通知送信に失敗:', error);
+                    }
+                }
+                
                 // 追加の同期確認（storageイベントを手動で発火）
                 window.dispatchEvent(new StorageEvent('storage', {
                     key: 'jukuManagementData',
@@ -230,6 +258,44 @@ class StudentRegistration {
         } catch (error) {
             console.error('addToTeacherQueueでエラーが発生しました:', error);
             console.error('エラーの詳細:', error.stack);
+        }
+    }
+
+    // URLパラメータでデータを共有
+    shareDataViaURL(student) {
+        try {
+            // データをBase64エンコード
+            const studentData = {
+                name: student.name,
+                subject: student.subject,
+                contentType: student.contentType,
+                id: student.id,
+                addedAt: student.addedAt.toISOString(),
+                completed: student.completed
+            };
+            
+            const encodedData = btoa(JSON.stringify(studentData));
+            
+            // 先生画面のURLを生成（新しいタブで開く）
+            const teacherURL = `teacher.html?newStudent=${encodedData}&timestamp=${Date.now()}`;
+            
+            console.log('先生画面URLを生成:', teacherURL);
+            
+            // ポップアップで先生画面を開く（または新しいタブ）
+            const popup = window.open(teacherURL, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+            
+            if (popup) {
+                console.log('先生画面を新しいタブで開きました');
+                
+                // 通知メッセージを表示
+                this.showNotification('先生画面を開きました。登録情報が反映されています。', 'success');
+            } else {
+                console.log('ポップアップがブロックされました');
+                this.showNotification('ポップアップがブロックされました。手動で先生画面を開いてください。', 'error');
+            }
+            
+        } catch (error) {
+            console.error('URL共有でエラー:', error);
         }
     }
 
