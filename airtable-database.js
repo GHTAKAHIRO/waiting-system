@@ -312,23 +312,26 @@ class AirtableDatabase {
 
             console.log('🚀 Airtableに生徒データを保存中:', student);
 
+            const payload = {
+                records: [{
+                    fields: {
+                        name: student.name,
+                        subject: student.subject,
+                        contentType: student.contentType,
+                        addedAt: new Date(student.addedAt).toISOString()
+                    }
+                }]
+            };
+
+            console.log('📤 Airtableに送信するデータ:', payload);
+
             const response = await fetch(`${this.airtableUrl}/${this.baseId}/${this.tableId}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${this.apiKey}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    records: [{
-                        fields: {
-                            name: student.name,
-                            subject: student.subject,
-                            contentType: student.contentType,
-                            addedAt: new Date(student.addedAt).toISOString(),
-                            status: 'waiting'
-                        }
-                    }]
-                })
+                body: JSON.stringify(payload)
             });
 
             if (response.ok) {
