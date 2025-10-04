@@ -1,0 +1,24 @@
+{
+  "name": "juku-waiting-system",
+  "version": "1.0.0",
+  "description": "塾の順番管理システム",
+  "main": "websocket-server.js",
+  "scripts": {
+    "start": "node websocket-server.js",
+    "dev": "nodemon websocket-server.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "juku",
+    "waiting",
+    "management",
+    "websocket"
+  ],
+  "author": "GHTAKAHIRO",
+  "license": "MIT"
+}

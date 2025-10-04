@@ -52,19 +52,13 @@
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
     <script src="firebase-config.js"></script>
-    
     <!-- Airtable設定 -->
-    <script>
-        // Airtable設定
-        window.AIRTABLE_CONFIG = {
-            baseId: 'appPdBa4WqpdfeSb2',
-            apiKey: 'patcTvuHjHRGoKYCD'
-        };
-        console.log('✅ Airtable設定を読み込みました');
-    </script>
-    
-    <!-- AirtableDatabase -->
+    <script src="airtable-config.js"></script>
+    <!-- 新しいデータベースシステム（優先順位順） -->
     <script src="airtable-database.js"></script>
+    <script src="supabase-database.js"></script>
+    <script src="realtime-database.js"></script>
+    <script src="shared-storage.js"></script>
     <script src="student-script.js"></script>
 </body>
 </html>

@@ -8,6 +8,7 @@ class TeacherManagement {
         this.isUpdating = false; // 更新中フラグ
         this.broadcastChannel = null;
         this.database = null;
+        this.sharedStorage = null;
         this.init();
     }
 
@@ -25,7 +26,11 @@ class TeacherManagement {
         // Firebaseを設定
         this.setupFirebase();
         
-        // URLパラメータ機能は削除（Airtableクラウド同期を使用）
+        // SharedStorageを設定
+        this.setupSharedStorage();
+        
+        // URLパラメータから新しい生徒データを読み取り
+        this.checkURLParameters();
         
         // フォールバック: 定期的にデータを更新（生徒からの新しい登録を検知）
         setInterval(() => {
@@ -65,6 +70,47 @@ class TeacherManagement {
             }
         } catch (error) {
             console.log('Firebaseの設定でエラー:', error);
+        }
+    }
+
+    setupSharedStorage() {
+        try {
+            // 優先順位: Airtable > Supabase > RealtimeDatabase > SharedStorage
+            if (window.airtableDatabase) {
+                this.database = window.airtableDatabase;
+                console.log('AirtableDatabaseを設定しました');
+            } else if (window.supabaseDatabase) {
+                this.database = window.supabaseDatabase;
+                console.log('SupabaseDatabaseを設定しました');
+            } else if (window.realtimeDatabase) {
+                this.database = window.realtimeDatabase;
+                console.log('RealtimeDatabaseを設定しました');
+            } else if (window.sharedStorage) {
+                this.database = window.sharedStorage;
+                console.log('SharedStorageを設定しました');
+            } else {
+                console.log('データベースシステムが利用できません。');
+            }
+            
+            if (this.database) {
+                // データ変更を監視
+                this.database.onDataChange((type, data, fullData) => {
+                    console.log('データベースでデータ変更を検知:', type);
+                    if (fullData) {
+                        this.markingQueue = fullData.markingQueue || [];
+                        this.retryQueue = fullData.retryQueue || [];
+                        this.questionQueue = fullData.questionQueue || [];
+                        this.completedCount = fullData.completedCount || 0;
+                        this.updateDisplay();
+                        
+                        if (type === 'studentAdded' || type === 'dataSynced') {
+                            this.playNotificationSound();
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            console.log('データベースシステムの設定でエラー:', error);
         }
     }
 
@@ -377,8 +423,8 @@ class TeacherManagement {
         
         // 現在のHTMLを生成
         let newHTML;
-                if (this.retryQueue.length === 0) {
-                    newHTML = '<p class="empty-message">その他待ちの生徒はいません</p>';
+        if (this.retryQueue.length === 0) {
+            newHTML = '<p class="empty-message">直し待ちの生徒はいません</p>';
         } else {
             newHTML = this.retryQueue.map((student, index) => `
                 <div class="queue-item">
@@ -392,10 +438,10 @@ class TeacherManagement {
                             </div>
                         </div>
                     </div>
-                            <div class="queue-actions">
-                                <button class="btn btn-info" onclick="teacherManagement.moveToQuestion(${student.id})" title="質問">質問</button>
-                                <button class="btn btn-success" onclick="teacherManagement.completeStudent(${student.id})" title="完了">完了</button>
-                            </div>
+                    <div class="queue-actions">
+                        <button class="btn btn-info" onclick="teacherManagement.moveToQuestion(${student.id})" title="質問">質問</button>
+                        <button class="btn btn-success" onclick="teacherManagement.completeStudent(${student.id})" title="完了">完了</button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -592,89 +638,127 @@ class TeacherManagement {
         return style;
     }
 
-    moveToRetry(studentId) {
-        // 丸付けリストから直しリストに移動
-        const studentIndex = this.markingQueue.findIndex(s => s.id === studentId);
-        if (studentIndex !== -1) {
-            const student = this.markingQueue.splice(studentIndex, 1)[0];
-            this.retryQueue.push(student);
-            this.updateDisplay();
-            this.saveData();
-            this.showNotification(`${student.name}さんを直しリストに移動しました。`);
-        }
-    }
-
-    moveToQuestion(studentId) {
-        // 直しリストから質問リストに移動
-        const studentIndex = this.retryQueue.findIndex(s => s.id === studentId);
-        if (studentIndex !== -1) {
-            const student = this.retryQueue.splice(studentIndex, 1)[0];
-            this.questionQueue.push(student);
-            this.updateDisplay();
-            this.saveData();
-            this.showNotification(`${student.name}さんを質問リストに移動しました。`);
-        }
-    }
-
-    completeStudent(studentId) {
-        console.log(`完了処理開始: 学生ID ${studentId}`);
-        console.log('完了前のデータ:', {
-            markingQueue: this.markingQueue.length,
-            retryQueue: this.retryQueue.length,
-            questionQueue: this.questionQueue.length,
-            completedCount: this.completedCount
-        });
+    async moveToRetry(studentId) {
+        let success = false;
+        let studentName = '';
         
-        // 生徒を完了として削除
-        let student = null;
-        
-        // 丸付けリストから削除
-        const markingIndex = this.markingQueue.findIndex(s => s.id === studentId);
-        if (markingIndex !== -1) {
-            student = this.markingQueue.splice(markingIndex, 1)[0];
-            console.log(`丸付けリストから削除: ${student.name}`);
-        }
-        
-        // 直しリストから削除
-        const retryIndex = this.retryQueue.findIndex(s => s.id === studentId);
-        if (retryIndex !== -1) {
-            student = this.retryQueue.splice(retryIndex, 1)[0];
-            console.log(`直しリストから削除: ${student.name}`);
-        }
-        
-        // 質問リストから削除
-        const questionIndex = this.questionQueue.findIndex(s => s.id === studentId);
-        if (questionIndex !== -1) {
-            student = this.questionQueue.splice(questionIndex, 1)[0];
-            console.log(`質問リストから削除: ${student.name}`);
-        }
-        
-        if (student) {
-            this.completedCount++;
+        if (this.database) {
+            // まず生徒名を取得
+            const student = this.markingQueue.find(s => s.id === studentId);
+            if (student) {
+                studentName = student.name;
+            }
             
-            // 生徒の登録情報をクリア（より確実に）
+            success = await this.database.moveStudent(studentId, 'marking', 'retry');
+        } else {
+            // フォールバック: 従来の方法
+            const studentIndex = this.markingQueue.findIndex(s => s.id === studentId);
+            if (studentIndex !== -1) {
+                const student = this.markingQueue.splice(studentIndex, 1)[0];
+                this.retryQueue.push(student);
+                studentName = student.name;
+                this.saveData();
+                success = true;
+            }
+        }
+        
+        if (success) {
+            this.updateDisplay();
+            this.showNotification(`${studentName || studentId}さんを直しリストに移動しました。`);
+        }
+    }
+
+    async moveToQuestion(studentId) {
+        let success = false;
+        let studentName = '';
+        
+        if (this.database) {
+            // まず生徒名を取得
+            const student = this.retryQueue.find(s => s.id === studentId);
+            if (student) {
+                studentName = student.name;
+            }
+            
+            success = await this.database.moveStudent(studentId, 'retry', 'question');
+        } else {
+            // フォールバック: 従来の方法
+            const studentIndex = this.retryQueue.findIndex(s => s.id === studentId);
+            if (studentIndex !== -1) {
+                const student = this.retryQueue.splice(studentIndex, 1)[0];
+                this.questionQueue.push(student);
+                studentName = student.name;
+                this.saveData();
+                success = true;
+            }
+        }
+        
+        if (success) {
+            this.updateDisplay();
+            this.showNotification(`${studentName || studentId}さんを質問リストに移動しました。`);
+        }
+    }
+
+    async completeStudent(studentId) {
+        console.log(`完了処理開始: 学生ID ${studentId}`);
+        
+        let success = false;
+        let studentName = '';
+        
+        if (this.database) {
+            // まず生徒名を取得
+            const allStudents = [...this.markingQueue, ...this.retryQueue, ...this.questionQueue];
+            const student = allStudents.find(s => s.id === studentId);
+            if (student) {
+                studentName = student.name;
+            }
+            
+            success = await this.database.removeStudent(studentId);
+        } else {
+            // フォールバック: 従来の方法
+            let student = null;
+            
+            // 丸付けリストから削除
+            const markingIndex = this.markingQueue.findIndex(s => s.id === studentId);
+            if (markingIndex !== -1) {
+                student = this.markingQueue.splice(markingIndex, 1)[0];
+                console.log(`丸付けリストから削除: ${student.name}`);
+            }
+            
+            // 直しリストから削除
+            const retryIndex = this.retryQueue.findIndex(s => s.id === studentId);
+            if (retryIndex !== -1) {
+                student = this.retryQueue.splice(retryIndex, 1)[0];
+                console.log(`直しリストから削除: ${student.name}`);
+            }
+            
+            // 質問リストから削除
+            const questionIndex = this.questionQueue.findIndex(s => s.id === studentId);
+            if (questionIndex !== -1) {
+                student = this.questionQueue.splice(questionIndex, 1)[0];
+                console.log(`質問リストから削除: ${student.name}`);
+            }
+            
+            if (student) {
+                studentName = student.name;
+                this.completedCount++;
+                this.saveData();
+                success = true;
+            }
+        }
+        
+        if (success) {
+            // 生徒の登録情報をクリア
             const registeredStudent = JSON.parse(localStorage.getItem('registeredStudent') || '{}');
             if (registeredStudent.id === studentId) {
                 localStorage.removeItem('registeredStudent');
-                console.log(`${student.name}さんの登録情報をクリアしました`);
-            } else {
-                // IDが一致しない場合でも、念のため登録情報をクリア
-                console.log('IDが一致しませんが、登録情報をクリアします');
-                localStorage.removeItem('registeredStudent');
+                console.log(`${studentName}さんの登録情報をクリアしました`);
             }
             
-            console.log('完了後のデータ:', {
-                markingQueue: this.markingQueue.length,
-                retryQueue: this.retryQueue.length,
-                questionQueue: this.questionQueue.length,
-                completedCount: this.completedCount
-            });
-            
             this.updateDisplay();
-            this.saveData();
-            this.showNotification(`${student.name}さんの対応を完了しました。`);
+            this.showNotification(`${studentName || '生徒'}さんの対応を完了しました。`);
         } else {
             console.error(`学生ID ${studentId} が見つかりませんでした`);
+            this.showNotification('生徒の完了処理に失敗しました。', 'error');
         }
     }
 
@@ -704,15 +788,6 @@ class TeacherManagement {
             oscillator.stop(audioContext.currentTime + 0.5);
         } catch (error) {
             console.log('音声通知がサポートされていません');
-        }
-    }
-
-    getContentTypeClass(contentType) {
-        switch (contentType) {
-            case '丸付け': return 'marking';
-            case '直し（質問なし）': return 'retry-no-question';
-            case '直し（質問あり）': return 'retry-with-question';
-            default: return '';
         }
     }
 

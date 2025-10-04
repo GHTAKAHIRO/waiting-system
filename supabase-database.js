@@ -1,18 +1,8 @@
-// Airtableデータベースシステム（最も簡単・推奨）
-class AirtableDatabase {
+// Supabaseデータベースシステム（推奨）
+class SupabaseDatabase {
     constructor() {
-        this.airtableUrl = 'https://api.airtable.com/v0'; // Airtable API
-        
-        // 設定ファイルから値を取得
-        if (window.AIRTABLE_CONFIG) {
-            this.baseId = window.AIRTABLE_CONFIG.baseId;
-            this.apiKey = window.AIRTABLE_CONFIG.apiKey;
-        } else {
-            this.baseId = 'YOUR_BASE_ID'; // フォールバック
-            this.apiKey = 'YOUR_API_KEY'; // フォールバック
-        }
-        
-        this.tableId = 'tblVnPJ9m0X5qHhK8R'; // 実際のテーブルID
+        this.supabaseUrl = 'https://your-project.supabase.co'; // 実際のURLに置き換え
+        this.supabaseKey = 'your-anon-key'; // 実際のキーに置き換え
         this.data = {
             markingQueue: [],
             retryQueue: [],
@@ -27,14 +17,7 @@ class AirtableDatabase {
     }
 
     init() {
-        console.log('AirtableDatabaseを初期化しています');
-        
-        // 設定の検証
-        if (this.baseId === 'YOUR_BASE_ID' || this.apiKey === 'YOUR_API_KEY') {
-            console.warn('⚠️ Airtable設定が完了していません。airtable-config.jsを設定してください。');
-            console.warn('設定方法: ベースIDを取得してairtable-config.jsを更新してください。');
-            return;
-        }
+        console.log('SupabaseDatabaseを初期化しています');
         
         // オンライン状態の監視
         window.addEventListener('online', () => {
@@ -51,15 +34,12 @@ class AirtableDatabase {
         // 初期データの読み込み
         this.loadData();
         
-        // APIテストを実行
-        this.testAirtableConnection();
-        
-        // 定期的な同期（2秒ごと）
+        // 定期的な同期（3秒ごと）
         this.syncInterval = setInterval(() => {
             if (this.isOnline) {
                 this.syncData();
             }
-        }, 2000);
+        }, 3000);
 
         // ページの可視性変更時の同期
         document.addEventListener('visibilitychange', () => {
@@ -68,84 +48,31 @@ class AirtableDatabase {
             }
         });
 
-        console.log('AirtableDatabaseの初期化が完了しました');
-    }
-
-    // Airtable接続テスト
-    async testAirtableConnection() {
-        try {
-            console.log('🔍 Airtable接続テストを開始します...');
-            const url = `${this.airtableUrl}/${this.baseId}`;
-            console.log('🔍 Base URL:', url);
-            
-            const response = await fetch(url, {
-                headers: {
-                    'Authorization': `Bearer ${this.apiKey}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            console.log('📡 Base test response status:', response.status);
-            
-            if (response.ok) {
-                const result = await response.json();
-                console.log('✅ Base接続成功:', result);
-                console.log('📊 利用可能なテーブル:', result.tables?.map(t => ({ id: t.id, name: t.name })));
-            } else {
-                const errorText = await response.text();
-                console.error('❌ Base接続エラー:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    error: errorText
-                });
-            }
-        } catch (error) {
-            console.error('❌ Airtable接続テストエラー:', error);
-        }
+        console.log('SupabaseDatabaseの初期化が完了しました');
     }
 
     // データを読み込み
     async loadData() {
         try {
             if (this.isOnline) {
-                const url = `${this.airtableUrl}/${this.baseId}/${this.tableId}?maxRecords=1&sort%5B0%5D%5Bfield%5D=LastUpdated&sort%5B0%5D%5Bdirection%5D=desc`;
-                console.log('🔍 Airtable URL:', url);
-                console.log('🔑 API Key (first 20 chars):', this.apiKey.substring(0, 20) + '...');
-                
-                const response = await fetch(url, {
+                const response = await fetch(`${this.supabaseUrl}/rest/v1/queue_data?select=*&order=updated_at.desc&limit=1`, {
                     headers: {
-                        'Authorization': `Bearer ${this.apiKey}`,
+                        'apikey': this.supabaseKey,
+                        'Authorization': `Bearer ${this.supabaseKey}`,
                         'Content-Type': 'application/json'
                     }
                 });
                 
-                console.log('📡 Response status:', response.status);
-                
                 if (response.ok) {
                     const result = await response.json();
-                    console.log('📊 Airtable response:', result);
-                    if (result.records && result.records.length > 0) {
-                        const record = result.records[0];
-                        if (record.fields.Data) {
-                            this.data = { ...this.data, ...JSON.parse(record.fields.Data) };
-                            console.log('✅ Airtableからデータを読み込みました:', this.data);
-                        }
-                    } else {
-                        console.log('📝 Airtableにデータがありません。新しいデータを作成します。');
+                    if (result.length > 0) {
+                        this.data = { ...this.data, ...result[0].data };
+                        console.log('Supabaseからデータを読み込みました:', this.data);
                     }
-                } else {
-                    const errorText = await response.text();
-                    console.error('❌ Airtable API Error:', {
-                        status: response.status,
-                        statusText: response.statusText,
-                        error: errorText,
-                        url: url
-                    });
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
                 }
             } else {
                 // オフライン時はローカルストレージから読み込み
-                const localData = localStorage.getItem('juku-airtable-data');
+                const localData = localStorage.getItem('juku-supabase-data');
                 if (localData) {
                     this.data = { ...this.data, ...JSON.parse(localData) };
                     console.log('ローカルからデータを読み込みました:', this.data);
@@ -155,12 +82,11 @@ class AirtableDatabase {
             this.notifyListeners('dataLoaded', this.data);
             return this.data;
         } catch (error) {
-            console.error('❌ Airtableデータ読み込みエラー:', error);
+            console.error('データ読み込みエラー:', error);
             // フォールバック: ローカルストレージから読み込み
-            const localData = localStorage.getItem('juku-airtable-data');
+            const localData = localStorage.getItem('juku-supabase-data');
             if (localData) {
                 this.data = { ...this.data, ...JSON.parse(localData) };
-                console.log('📱 ローカルストレージからデータを読み込みました');
                 this.notifyListeners('dataLoaded', this.data);
             }
             return this.data;
@@ -177,33 +103,31 @@ class AirtableDatabase {
             }
 
             // ローカルストレージに保存（オフライン対応）
-            localStorage.setItem('juku-airtable-data', JSON.stringify(this.data));
+            localStorage.setItem('juku-supabase-data', JSON.stringify(this.data));
 
             if (this.isOnline) {
-                // Airtableに保存
-                const response = await fetch(`${this.airtableUrl}/${this.baseId}/${this.tableId}`, {
-                    method: 'PATCH',
+                // Supabaseに保存
+                const response = await fetch(`${this.supabaseUrl}/rest/v1/queue_data`, {
+                    method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${this.apiKey}`,
-                        'Content-Type': 'application/json'
+                        'apikey': this.supabaseKey,
+                        'Authorization': `Bearer ${this.supabaseKey}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'resolution=merge-duplicates'
                     },
                     body: JSON.stringify({
-                        records: [{
-                            id: 'recMainQueue', // 固定ID
-                            fields: {
-                                Data: JSON.stringify(this.data),
-                                LastUpdated: new Date().toISOString()
-                            }
-                        }]
+                        id: 1, // 固定ID
+                        data: this.data,
+                        updated_at: new Date().toISOString()
                     })
                 });
 
                 if (response.ok) {
-                    console.log('Airtableにデータを保存しました:', this.data);
+                    console.log('Supabaseにデータを保存しました:', this.data);
                     this.notifyListeners('dataSaved', this.data);
                     return true;
                 } else {
-                    console.error('Airtable保存に失敗しました:', response.status);
+                    console.error('Supabase保存に失敗しました:', response.status);
                     return false;
                 }
             } else {
@@ -222,31 +146,30 @@ class AirtableDatabase {
         if (!this.isOnline) return;
 
         try {
-            const response = await fetch(`${this.airtableUrl}/${this.baseId}/${this.tableId}?maxRecords=1&sort%5B0%5D%5Bfield%5D=LastUpdated&sort%5B0%5D%5Bdirection%5D=desc`, {
+            const response = await fetch(`${this.supabaseUrl}/rest/v1/queue_data?select=*&order=updated_at.desc&limit=1`, {
                 headers: {
-                    'Authorization': `Bearer ${this.apiKey}`
+                    'apikey': this.supabaseKey,
+                    'Authorization': `Bearer ${this.supabaseKey}`,
+                    'Content-Type': 'application/json'
                 }
             });
 
             if (response.ok) {
                 const result = await response.json();
-                if (result.records && result.records.length > 0) {
-                    const record = result.records[0];
-                    if (record.fields.Data) {
-                        const remoteData = JSON.parse(record.fields.Data);
-                        const localData = this.data;
+                if (result.length > 0) {
+                    const remoteData = result[0].data;
+                    const localData = this.data;
 
-                        // リモートデータが新しい場合は更新
-                        if (remoteData.lastUpdated > localData.lastUpdated) {
-                            console.log('リモートデータが新しいため更新します');
-                            this.data = { ...this.data, ...remoteData };
-                            this.notifyListeners('dataSynced', this.data);
-                        }
-                        // ローカルデータが新しい場合はアップロード
-                        else if (localData.lastUpdated > remoteData.lastUpdated) {
-                            console.log('ローカルデータが新しいためアップロードします');
-                            await this.saveData();
-                        }
+                    // リモートデータが新しい場合は更新
+                    if (remoteData.lastUpdated > localData.lastUpdated) {
+                        console.log('リモートデータが新しいため更新します');
+                        this.data = { ...this.data, ...remoteData };
+                        this.notifyListeners('dataSynced', this.data);
+                    }
+                    // ローカルデータが新しい場合はアップロード
+                    else if (localData.lastUpdated > remoteData.lastUpdated) {
+                        console.log('ローカルデータが新しいためアップロードします');
+                        await this.saveData();
                     }
                 }
             }
@@ -447,4 +370,4 @@ class AirtableDatabase {
 }
 
 // グローバルインスタンス
-window.airtableDatabase = new AirtableDatabase();
+window.supabaseDatabase = new SupabaseDatabase();

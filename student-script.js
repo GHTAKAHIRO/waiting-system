@@ -3,6 +3,7 @@ class StudentRegistration {
         this.registeredStudent = null;
         this.broadcastChannel = null;
         this.database = null;
+        this.sharedStorage = null;
         this.init();
     }
 
@@ -41,28 +42,25 @@ class StudentRegistration {
 
     setupSharedStorage() {
         try {
-            // 優先順位: Airtable > Firebase > localStorage
-            if (window.AirtableDatabase && window.AIRTABLE_CONFIG && window.AIRTABLE_CONFIG.apiKey !== 'YOUR_API_KEY_HERE') {
-                this.database = new window.AirtableDatabase();
-                this.database.init();
+            // 優先順位: Airtable > Supabase > RealtimeDatabase > SharedStorage
+            if (window.airtableDatabase) {
+                this.database = window.airtableDatabase;
                 console.log('AirtableDatabaseを設定しました');
-                
-                // Airtableエラー時のフォールバック
-                setTimeout(() => {
-                    if (this.database && this.database.constructor.name === 'AirtableDatabase') {
-                        // Airtableが動作しない場合はlocalStorageにフォールバック
-                        console.log('Airtableが利用できないため、localStorageを使用します');
-                        this.database = null;
-                    }
-                }, 3000);
+            } else if (window.supabaseDatabase) {
+                this.database = window.supabaseDatabase;
+                console.log('SupabaseDatabaseを設定しました');
+            } else if (window.realtimeDatabase) {
+                this.database = window.realtimeDatabase;
+                console.log('RealtimeDatabaseを設定しました');
+            } else if (window.sharedStorage) {
+                this.database = window.sharedStorage;
+                console.log('SharedStorageを設定しました');
             } else {
-                // フォールバック: localStorageを使用
-                console.log('Airtableが利用できないため、localStorageを使用します');
-                this.database = null; // localStorageを直接使用
+                console.log('データベースシステムが利用できません。');
             }
         } catch (error) {
             console.log('データベースシステムの設定でエラー:', error);
-            this.database = null;
+            console.warn('⚠️ Airtableが利用できないため、システムが機能しません。');
         }
     }
 
@@ -141,15 +139,6 @@ class StudentRegistration {
             return;
         }
 
-        // 既に登録済みかチェック（簡易版）
-        const savedRegisteredStudent = localStorage.getItem('registeredStudent');
-        if (savedRegisteredStudent) {
-            console.log('前回の登録情報が存在します。新しい登録を許可します。');
-            // 前回の登録情報をクリアして新しい登録を許可
-            localStorage.removeItem('registeredStudent');
-            this.registeredStudent = null;
-        }
-
         const student = {
             id: Date.now(),
             name: name,
@@ -159,76 +148,74 @@ class StudentRegistration {
             completed: false
         };
 
-        // ローカルストレージに保存
+        // 登録情報を保存
         this.registeredStudent = student;
-        localStorage.setItem('registeredStudent', JSON.stringify(student));
 
-        // 先生用のキューに追加（共有データ）
-        console.log('addToTeacherQueueを呼び出します:', student);
-        this.addToTeacherQueue(student);
-        console.log('addToTeacherQueueの呼び出しが完了しました');
+        // Airtableデータベースを使用
+        console.log('Airtableデータベースを使用してデータを保存します:', student);
         
-        // Firebaseにも保存（リアルタイム同期）
-        this.saveToFirebase(student);
-
-        this.showSuccessPopup();
-        
-        // フォームをリセット
-        this.resetForm();
+        if (this.database) {
+            try {
+                const queueSuccess = await this.database.addStudent(student);
+                console.log('データ保存結果:', queueSuccess);
+                
+                if (queueSuccess) {
+                    this.showSuccessPopup();
+                    // フォームをリセット
+                    this.resetForm();
+                } else {
+                    this.showNotification('登録に失敗しました。もう一度お試しください。', 'error');
+                }
+            } catch (error) {
+                console.error('登録エラー:', error);
+                this.showNotification('登録中にエラーが発生しました。もう一度お試しください。', 'error');
+            }
+        } else {
+            console.error('データベースシステムが利用できません');
+            this.showNotification('システムエラー: データベースに接続できません。', 'error');
+        }
     }
 
     addToTeacherQueue(student) {
         try {
-            // Airtableが利用可能な場合はAirtableに保存
-            if (this.database && this.database.constructor.name === 'AirtableDatabase') {
-                console.log('Airtableに生徒を追加:', student);
-                this.database.addStudent(student);
-                return;
-            }
-            
-            // 先生用のキューに追加（内容に応じて適切なリストに追加）
             console.log('addToTeacherQueue開始:', student);
         
-            // 複数回試行してデータの整合性を確保
+            // データ保存を試行
             let success = false;
             let attempts = 0;
-            const maxAttempts = 5;
+            const maxAttempts = 3;
             
             while (!success && attempts < maxAttempts) {
                 attempts++;
                 console.log(`データ保存試行 ${attempts}/${maxAttempts}`);
                 
                 try {
-                    const teacherData = JSON.parse(localStorage.getItem('jukuManagementData') || '{"markingQueue":[],"retryQueue":[],"questionQueue":[]}');
-                    console.log('読み込んだteacherData:', teacherData);
+                    // 既存データを読み込み
+                    const existingData = localStorage.getItem('jukuManagementData');
+                    const teacherData = existingData ? JSON.parse(existingData) : {
+                        markingQueue: [],
+                        retryQueue: [],
+                        questionQueue: [],
+                        completedCount: 0
+                    };
                     
-                    // 古いデータ構造から新しいデータ構造に移行
-                    if (teacherData.queue && !teacherData.markingQueue) {
-                        console.log('古いデータ構造を新しい構造に移行');
-                        teacherData.markingQueue = teacherData.queue;
-                        delete teacherData.queue;
-                    }
+                    // データ構造の整合性を確保
+                    if (!teacherData.markingQueue) teacherData.markingQueue = [];
+                    if (!teacherData.retryQueue) teacherData.retryQueue = [];
+                    if (!teacherData.questionQueue) teacherData.questionQueue = [];
+                    if (!teacherData.completedCount) teacherData.completedCount = 0;
                     
-                    // データ構造を確認して、存在しない場合は初期化
-                    if (!teacherData.markingQueue) {
-                        console.log('markingQueueを初期化');
-                        teacherData.markingQueue = [];
-                    }
-                    if (!teacherData.retryQueue) {
-                        console.log('retryQueueを初期化');
-                        teacherData.retryQueue = [];
-                    }
-                    if (!teacherData.questionQueue) {
-                        console.log('questionQueueを初期化');
-                        teacherData.questionQueue = [];
-                    }
+                    // 重複チェック
+                    const existingStudent = [...teacherData.markingQueue, ...teacherData.retryQueue, ...teacherData.questionQueue]
+                        .find(s => s.id === student.id);
                     
-                    console.log('初期化後のteacherData:', teacherData);
+                    if (existingStudent) {
+                        console.log('既存の生徒データが存在します:', student.name);
+                        success = true;
+                        break;
+                    }
                     
                     // 内容に応じて適切なキューに追加
-                    console.log('switch文に入る前のcontentType:', student.contentType);
-                    console.log('switch文に入る前のcontentTypeの型:', typeof student.contentType);
-                    
                     switch (student.contentType) {
                         case '丸付け':
                             teacherData.markingQueue.push(student);
@@ -236,23 +223,17 @@ class StudentRegistration {
                             break;
                         case '質問':
                             teacherData.questionQueue.push(student);
-                            console.log('質問リストに直接追加:', student.name);
+                            console.log('質問リストに追加:', student.name);
                             break;
                         default:
-                            // デフォルトは丸付けリストに追加
                             teacherData.markingQueue.push(student);
-                            console.log('デフォルトで丸付けリストに追加:', student.name, 'contentType:', student.contentType);
+                            console.log('デフォルトで丸付けリストに追加:', student.name);
                     }
-                    
-                    console.log('保存前の最終状態:');
-                    console.log('丸付けリスト:', teacherData.markingQueue);
-                    console.log('直しリスト:', teacherData.retryQueue);
-                    console.log('質問リスト:', teacherData.questionQueue);
                     
                     // データを保存
                     localStorage.setItem('jukuManagementData', JSON.stringify(teacherData));
                     
-                    // 保存を確認
+                    // 保存確認
                     const savedData = localStorage.getItem('jukuManagementData');
                     if (savedData) {
                         const parsedData = JSON.parse(savedData);
@@ -262,61 +243,58 @@ class StudentRegistration {
                         if (found) {
                             console.log('データ保存確認成功:', student.name);
                             success = true;
-                        } else {
-                            console.log('データ保存確認失敗、再試行します');
                         }
-                    } else {
-                        console.log('データが保存されませんでした、再試行します');
                     }
                     
                 } catch (saveError) {
                     console.error(`保存試行 ${attempts} でエラー:`, saveError);
                     if (attempts < maxAttempts) {
-                        // 少し待ってから再試行
-                        setTimeout(() => {}, 100);
+                        await new Promise(resolve => setTimeout(resolve, 100));
                     }
                 }
             }
             
             if (!success) {
-                console.error('最大試行回数に達しました。データの保存に失敗しました。');
+                console.error('データの保存に失敗しました。');
                 this.showNotification('登録に失敗しました。もう一度お試しください。', 'error');
-            } else {
-                console.log('先生側のキューに追加しました:', student);
-                
-                // BroadcastChannelで他のタブに通知
-                if (this.broadcastChannel) {
-                    try {
-                        this.broadcastChannel.postMessage({
-                            type: 'studentRegistered',
-                            student: student,
-                            timestamp: Date.now()
-                        });
-                        console.log('BroadcastChannelで通知を送信しました');
-                    } catch (error) {
-                        console.log('BroadcastChannelでの通知送信に失敗:', error);
-                    }
-                }
-                
-                // 追加の同期確認（storageイベントを手動で発火）
-                window.dispatchEvent(new StorageEvent('storage', {
-                    key: 'jukuManagementData',
-                    newValue: localStorage.getItem('jukuManagementData'),
-                    url: window.location.href
-                }));
+                return false;
             }
+            
+            console.log('先生側のキューに追加しました:', student);
+            
+            // BroadcastChannelで他のタブに通知
+            if (this.broadcastChannel) {
+                try {
+                    this.broadcastChannel.postMessage({
+                        type: 'studentRegistered',
+                        student: student,
+                        timestamp: Date.now()
+                    });
+                    console.log('BroadcastChannelで通知を送信しました');
+                } catch (error) {
+                    console.log('BroadcastChannelでの通知送信に失敗:', error);
+                }
+            }
+            
+            // storageイベントを手動で発火（他のタブに通知）
+            window.dispatchEvent(new StorageEvent('storage', {
+                key: 'jukuManagementData',
+                newValue: localStorage.getItem('jukuManagementData'),
+                url: window.location.href
+            }));
+            
+            return true;
         
         } catch (error) {
             console.error('addToTeacherQueueでエラーが発生しました:', error);
-            console.error('エラーの詳細:', error.stack);
+            return false;
         }
     }
 
-    // URL共有機能は削除（Airtableクラウド同期を使用）
-    /*
+    // 共有URL方式でデータを共有（確実な方法）
     createSharedURL(student) {
         try {
-            // データをBase64エンコード（日本語対応）
+            // データをBase64エンコード
             const studentData = {
                 name: student.name,
                 subject: student.subject,
@@ -326,9 +304,7 @@ class StudentRegistration {
                 completed: student.completed
             };
             
-            // 日本語対応のエンコード
-            const jsonString = JSON.stringify(studentData);
-            const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
+            const encodedData = btoa(JSON.stringify(studentData));
             
             // 先生画面のURLを生成
             const teacherURL = `teacher.html?newStudent=${encodedData}&timestamp=${Date.now()}`;
@@ -341,7 +317,7 @@ class StudentRegistration {
         } catch (error) {
             console.error('URL共有でエラー:', error);
             // フォールバック：シンプルな通知
-            this.showSimpleNotification('登録完了！先生画面を確認してください。');
+            this.showSimpleNotification(teacherURL);
         }
     }
 
@@ -526,7 +502,6 @@ class StudentRegistration {
         };
         document.head.appendChild(script);
     }
-    */
 
     // Firebaseにデータを保存
     saveToFirebase(student) {
