@@ -289,6 +289,9 @@ class StudentRegistration {
                 
                 // 通知メッセージを表示
                 this.showNotification('先生画面を開きました。登録情報が反映されています。', 'success');
+                
+                // QRコードも表示（フォールバック用）
+                this.showQRCodeForTeacher(teacherURL);
             } else {
                 console.log('ポップアップがブロックされました');
                 this.showNotification('ポップアップがブロックされました。手動で先生画面を開いてください。', 'error');
@@ -297,6 +300,83 @@ class StudentRegistration {
         } catch (error) {
             console.error('URL共有でエラー:', error);
         }
+    }
+
+    // QRコードを表示して先生画面のURLを共有
+    showQRCodeForTeacher(teacherURL) {
+        // 簡単なQRコード生成ライブラリを動的に読み込み
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+        script.onload = () => {
+            try {
+                // QRコードを生成
+                QRCode.toDataURL(teacherURL, { width: 200 }, (err, url) => {
+                    if (err) {
+                        console.log('QRコード生成に失敗:', err);
+                        return;
+                    }
+                    
+                    // QRコードを表示するポップアップを作成
+                    const qrPopup = document.createElement('div');
+                    qrPopup.style.cssText = `
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: white;
+                        padding: 30px;
+                        border-radius: 15px;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                        z-index: 1001;
+                        text-align: center;
+                        max-width: 300px;
+                    `;
+                    
+                    qrPopup.innerHTML = `
+                        <h3 style="margin-bottom: 20px; color: #333;">先生画面を開く</h3>
+                        <img src="${url}" alt="QRコード" style="margin-bottom: 20px;">
+                        <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+                            スマートフォンでQRコードを読み取って先生画面を開いてください
+                        </p>
+                        <p style="font-size: 12px; color: #999; margin-bottom: 20px; word-break: break-all;">
+                            ${teacherURL}
+                        </p>
+                        <div style="display: flex; gap: 10px; justify-content: center;">
+                            <button onclick="navigator.clipboard.writeText('${teacherURL}'); this.textContent='コピー完了!'; setTimeout(() => this.textContent='URLをコピー', 2000);" style="
+                                background: #28a745;
+                                color: white;
+                                border: none;
+                                padding: 8px 15px;
+                                border-radius: 5px;
+                                cursor: pointer;
+                                font-size: 12px;
+                            ">URLをコピー</button>
+                            <button onclick="this.parentElement.parentElement.remove()" style="
+                                background: #6c757d;
+                                color: white;
+                                border: none;
+                                padding: 8px 15px;
+                                border-radius: 5px;
+                                cursor: pointer;
+                                font-size: 12px;
+                            ">閉じる</button>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(qrPopup);
+                    
+                    // 3秒後に自動で閉じる
+                    setTimeout(() => {
+                        if (document.body.contains(qrPopup)) {
+                            document.body.removeChild(qrPopup);
+                        }
+                    }, 10000);
+                });
+            } catch (error) {
+                console.log('QRコード生成でエラー:', error);
+            }
+        };
+        document.head.appendChild(script);
     }
 
     // デバッグ用: localStorageをクリア
