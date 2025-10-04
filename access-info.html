@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📱 塾システム アクセス情報</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 2.2em;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .access-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #4facfe;
+        }
+        .access-section h2 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .url-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            font-family: monospace;
+            font-size: 16px;
+            word-break: break-all;
+            margin-bottom: 15px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 20px;
+            background: #4facfe;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn:hover {
+            background: #3d8bfe;
+            transform: translateY(-2px);
+        }
+        .btn-teacher {
+            background: #28a745;
+        }
+        .btn-teacher:hover {
+            background: #218838;
+        }
+        .instructions {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            margin-bottom: 20px;
+        }
+        .instructions h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        .instructions p {
+            color: #856404;
+            margin-bottom: 8px;
+        }
+        .qr-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .qr-code {
+            display: inline-block;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📱 塾システム アクセス情報</h1>
+            <p>同じネットワーク内のデバイスからアクセスできます</p>
+        </header>
+        
+        <div class="content">
+            <div class="instructions">
+                <h3>📋 使用方法</h3>
+                <p>1. 先生は「先生用画面」を開いて管理</p>
+                <p>2. 生徒は「生徒用画面」を開いて登録</p>
+                <p>3. スマートフォンやタブレットでも使用可能</p>
+            </div>
+            
+            <div class="access-section">
+                <h2>👨‍🏫 先生用画面</h2>
+                <div class="url-box" id="teacherUrl">http://192.168.1.37:8000/teacher.html</div>
+                <a href="http://192.168.1.37:8000/teacher.html" class="btn btn-teacher" target="_blank">先生用画面を開く</a>
+                <button onclick="copyToClipboard('teacherUrl')" class="btn">URLをコピー</button>
+            </div>
+            
+            <div class="access-section">
+                <h2>📱 生徒用画面</h2>
+                <div class="url-box" id="studentUrl">http://192.168.1.37:8000/student.html</div>
+                <a href="http://192.168.1.37:8000/student.html" class="btn" target="_blank">生徒用画面を開く</a>
+                <button onclick="copyToClipboard('studentUrl')" class="btn">URLをコピー</button>
+            </div>
+            
+            <div class="qr-section">
+                <h3>📱 スマートフォンでアクセス</h3>
+                <p>QRコードをスキャンして簡単アクセス</p>
+                <div class="qr-code">
+                    <div id="qrcode"></div>
+                </div>
+            </div>
+            
+            <div class="instructions">
+                <h3>💡 ヒント</h3>
+                <p>• 同じWi-Fiネットワークに接続されている必要があります</p>
+                <p>• スマートフォンやタブレットでも使用できます</p>
+                <p>• データは自動的に保存されます</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script>
+        // QRコードを生成
+        const studentUrl = 'http://192.168.1.37:8000/student.html';
+        QRCode.toCanvas(document.getElementById('qrcode'), studentUrl, {
+            width: 200,
+            height: 200,
+            color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+            }
+        });
+        
+        // URLをクリップボードにコピー
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert('URLをコピーしました！');
+            }).catch(err => {
+                // フォールバック
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('URLをコピーしました！');
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>塾 順番管理システム</title>
+    <link rel="stylesheet" href="student-style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>塾 順番管理システム</h1>
+            <p class="subtitle">生徒用と先生用の画面を選択してください</p>
+        </header>
+        
+        <div class="menu-section">
+            <div class="menu-buttons">
+                <a href="student.html" class="btn btn-primary btn-large">📱 生徒用画面</a>
+                <a href="teacher.html" class="btn btn-secondary btn-large">👨‍🏫 先生用画面</a>
+            </div>
+            
+            <div class="system-info">
+                <h3>📋 システムの使い方</h3>
+                <div class="info-cards">
+                    <div class="info-card">
+                        <h4>📱 生徒用画面</h4>
+                        <p>氏名・教科・内容（丸付け・質問）を入力して順番を登録します。</p>
+                    </div>
+                    <div class="info-card">
+                        <h4>👨‍🏫 先生用画面</h4>
+                        <p>生徒の順番を管理し、完了処理を行います。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        .menu-section {
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .menu-buttons {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin-bottom: 50px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-large {
+            padding: 25px 50px;
+            font-size: 1.5em;
+            min-width: 250px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .system-info {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .system-info h3 {
+            color: #495057;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+        }
+        
+        .info-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .info-card {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .info-card h4 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .info-card p {
+            color: #6c757d;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 768px) {
+            .menu-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn-large {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👨‍🏫 塾 管理画面</title>
+    <link rel="stylesheet" href="teacher-style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 待機情報 -->
+        <div class="waiting-info">
+            <h2>待機状況</h2>
+            <div class="waiting-stats">
+                <div class="waiting-count">
+                    <span class="waiting-label">丸付け</span>
+                    <span class="waiting-number" id="markingCount">0</span>
+                    <span class="waiting-unit">人</span>
+                </div>
+                <div class="waiting-count">
+                    <span class="waiting-label">直し</span>
+                    <span class="waiting-number" id="retryCount">0</span>
+                    <span class="waiting-unit">人</span>
+                </div>
+                <div class="waiting-count">
+                    <span class="waiting-label">質問</span>
+                    <span class="waiting-number" id="questionCount">0</span>
+                    <span class="waiting-unit">人</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 丸付けリスト -->
+        <div class="queue-section">
+            <h2>📋 丸付け</h2>
+            <div id="markingList" class="queue-list">
+                <p class="empty-message">丸付け待ちの生徒はいません</p>
+            </div>
+        </div>
+        
+        <!-- 直しリスト -->
+        <div class="queue-section">
+            <h2>📝 直し</h2>
+            <div id="retryList" class="queue-list">
+                <p class="empty-message">直し待ちの生徒はいません</p>
+            </div>
+        </div>
+        
+        <!-- 質問リスト -->
+        <div class="queue-section">
+            <h2>❓ 質問</h2>
+            <div id="questionList" class="queue-list">
+                <p class="empty-message">質問待ちの生徒はいません</p>
+            </div>
+        </div>
+        
+    </div>
+    
+    <script src="teacher-script.js"></script>
+</body>
+</html>

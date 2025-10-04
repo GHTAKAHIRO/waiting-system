@@ -1,0 +1,20 @@
+# 不要なファイルを除外
+.DS_Store
+Thumbs.db
+*.log
+node_modules/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# エディタ設定
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 一時ファイル
+*.tmp
+*.temp

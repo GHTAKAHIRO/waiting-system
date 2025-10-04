@@ -1,0 +1,214 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+    overflow: hidden;
+}
+
+header {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    padding: 30px 30px;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 3.5em;
+    font-weight: 900;
+    margin-bottom: 15px;
+    text-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    letter-spacing: 3px;
+}
+
+.subtitle {
+    font-size: 1.1em;
+    opacity: 0.9;
+}
+
+.registration-section {
+    padding: 40px;
+}
+
+.registration-form {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 10px;
+    font-size: 20px;
+}
+
+.required {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.form-group input,
+.form-group select {
+    padding: 20px;
+    border: 3px solid #e9ecef;
+    border-radius: 12px;
+    font-size: 20px;
+    transition: border-color 0.3s;
+    background: white;
+    min-height: 60px;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #4facfe;
+    box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+}
+
+/* タッチ操作に最適化 */
+.form-group input,
+.form-group select,
+.btn {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.form-group input,
+.form-group select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.btn {
+    padding: 20px 40px;
+    border: none;
+    border-radius: 12px;
+    font-size: 22px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+    min-height: 70px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.btn-primary {
+    background: #4facfe;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #3d8bfe;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+}
+
+.btn-outline {
+    background: transparent;
+    color: #4facfe;
+    border: 2px solid #4facfe;
+}
+
+.btn-outline:hover {
+    background: #4facfe;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-teacher {
+    background: #28a745;
+    color: white;
+}
+
+.btn-teacher:hover {
+    background: #218838;
+    transform: translateY(-2px);
+}
+
+
+/* タブレット用スタイル */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .container {
+        max-width: 700px;
+        margin: 20px auto;
+    }
+    
+    .registration-section {
+        padding: 50px;
+    }
+    
+    .registration-form {
+        gap: 30px;
+    }
+    
+    header {
+        padding: 25px 30px;
+    }
+    
+    header h1 {
+        font-size: 4em;
+        letter-spacing: 4px;
+        margin-bottom: 10px;
+    }
+}
+
+@media (max-width: 600px) {
+    .container {
+        margin: 10px;
+        border-radius: 10px;
+    }
+    
+    header h1 {
+        font-size: 2.2em;
+        font-weight: 900;
+        letter-spacing: 1px;
+    }
+    
+    .form-group label {
+        font-size: 16px;
+    }
+    
+    .form-group input,
+    .form-group select {
+        padding: 15px;
+        font-size: 16px;
+        min-height: 50px;
+    }
+    
+    .btn {
+        padding: 15px 25px;
+        font-size: 18px;
+        min-height: 60px;
+    }
+}
