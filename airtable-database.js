@@ -12,7 +12,7 @@ class AirtableDatabase {
             this.apiKey = 'YOUR_API_KEY'; // フォールバック
         }
         
-        this.tableId = 'tblVnPJ9m0X5qHhK8R'; // 実際のテーブルID
+        this.tableId = 'tblbl1AsRZ82OXPzJ'; // 実際のテーブルID
         this.data = {
             markingQueue: [],
             retryQueue: [],
