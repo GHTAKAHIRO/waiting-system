@@ -176,7 +176,7 @@ class StudentRegistration {
         }
     }
 
-    async addToTeacherQueue(student) {
+    addToTeacherQueue(student) {
         try {
             console.log('addToTeacherQueue開始:', student);
         
@@ -249,7 +249,11 @@ class StudentRegistration {
                 } catch (saveError) {
                     console.error(`保存試行 ${attempts} でエラー:`, saveError);
                     if (attempts < maxAttempts) {
-                        await new Promise(resolve => setTimeout(resolve, 100));
+                        // 短い待機時間を追加
+                        const start = Date.now();
+                        while (Date.now() - start < 100) {
+                            // 100ms待機
+                        }
                     }
                 }
             }
