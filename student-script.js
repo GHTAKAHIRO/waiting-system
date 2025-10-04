@@ -10,6 +10,7 @@ class StudentRegistration {
         console.log('StudentRegistrationを初期化しています');
         this.setupBroadcastChannel();
         this.setupFirebase();
+        this.setupSharedStorage();
         this.bindEvents();
         this.loadRegisteredStudent();
         console.log('StudentRegistrationの初期化が完了しました');
@@ -35,6 +36,23 @@ class StudentRegistration {
             }
         } catch (error) {
             console.log('Firebaseの設定でエラー:', error);
+        }
+    }
+
+    setupSharedStorage() {
+        try {
+            // 優先順位: Airtable > Firebase > localStorage
+            if (window.AirtableDatabase && window.AIRTABLE_CONFIG && window.AIRTABLE_CONFIG.apiKey !== 'YOUR_API_KEY_HERE') {
+                this.database = new window.AirtableDatabase();
+                this.database.init();
+                console.log('AirtableDatabaseを設定しました');
+            } else {
+                // フォールバック: localStorageを使用
+                console.log('Airtableが利用できないため、localStorageを使用します');
+                this.database = null; // localStorageを直接使用
+            }
+        } catch (error) {
+            console.log('データベースシステムの設定でエラー:', error);
         }
     }
 
@@ -283,7 +301,7 @@ class StudentRegistration {
     // 共有URL方式でデータを共有（確実な方法）
     createSharedURL(student) {
         try {
-            // データをBase64エンコード
+            // データをBase64エンコード（日本語対応）
             const studentData = {
                 name: student.name,
                 subject: student.subject,
@@ -293,7 +311,9 @@ class StudentRegistration {
                 completed: student.completed
             };
             
-            const encodedData = btoa(JSON.stringify(studentData));
+            // 日本語対応のエンコード
+            const jsonString = JSON.stringify(studentData);
+            const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
             
             // 先生画面のURLを生成
             const teacherURL = `teacher.html?newStudent=${encodedData}&timestamp=${Date.now()}`;
@@ -306,7 +326,7 @@ class StudentRegistration {
         } catch (error) {
             console.error('URL共有でエラー:', error);
             // フォールバック：シンプルな通知
-            this.showSimpleNotification(teacherURL);
+            this.showSimpleNotification('登録完了！先生画面を確認してください。');
         }
     }
 
