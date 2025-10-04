@@ -12,7 +12,7 @@ class AirtableDatabase {
             this.apiKey = 'YOUR_API_KEY'; // フォールバック
         }
         
-        this.tableId = 'tblbl1AsRZ82OXPzJ'; // 実際のテーブルID
+        this.tableName = 'QueueData'; // Airtableのテーブル名
         this.data = {
             markingQueue: [],
             retryQueue: [],
@@ -75,7 +75,7 @@ class AirtableDatabase {
     async testAirtableConnection() {
         try {
             console.log('🔍 Airtable接続テストを開始します...');
-            const testUrl = `${this.airtableUrl}/${this.baseId}/${this.tableId}?maxRecords=1`;
+            const testUrl = `${this.airtableUrl}/${this.baseId}/${this.tableName}?maxRecords=1`;
             console.log('🔍 Test URL:', testUrl);
             
             const response = await fetch(testUrl, {
@@ -108,7 +108,7 @@ class AirtableDatabase {
     async loadData() {
         try {
             if (this.isOnline) {
-                const url = `${this.airtableUrl}/${this.baseId}/${this.tableId}?maxRecords=1`;
+                const url = `${this.airtableUrl}/${this.baseId}/${this.tableName}?maxRecords=1`;
                 console.log('🔍 Airtable URL:', url);
                 console.log('🔑 API Key (first 20 chars):', this.apiKey.substring(0, 20) + '...');
                 
@@ -181,7 +181,7 @@ class AirtableDatabase {
 
             if (this.isOnline) {
                 // シンプルなPOSTリクエストで新しいレコードを作成
-                const response = await fetch(`${this.airtableUrl}/${this.baseId}/${this.tableId}`, {
+                const response = await fetch(`${this.airtableUrl}/${this.baseId}/${this.tableName}`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${this.apiKey}`,
@@ -325,7 +325,7 @@ class AirtableDatabase {
 
             console.log('📤 Airtableに送信するデータ:', payload);
 
-            const response = await fetch(`${this.airtableUrl}/${this.baseId}/${this.tableId}`, {
+            const response = await fetch(`${this.airtableUrl}/${this.baseId}/${this.tableName}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${this.apiKey}`,
