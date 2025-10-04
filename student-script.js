@@ -2,12 +2,14 @@ class StudentRegistration {
     constructor() {
         this.registeredStudent = null;
         this.broadcastChannel = null;
+        this.database = null;
         this.init();
     }
 
     init() {
         console.log('StudentRegistrationを初期化しています');
         this.setupBroadcastChannel();
+        this.setupFirebase();
         this.bindEvents();
         this.loadRegisteredStudent();
         console.log('StudentRegistrationの初期化が完了しました');
@@ -19,6 +21,20 @@ class StudentRegistration {
             console.log('BroadcastChannelを設定しました');
         } catch (error) {
             console.log('BroadcastChannelがサポートされていません:', error);
+        }
+    }
+
+    setupFirebase() {
+        try {
+            // Firebaseが利用可能かチェック
+            if (typeof firebase !== 'undefined' && firebase.database) {
+                this.database = firebase.database();
+                console.log('Firebaseデータベースを設定しました');
+            } else {
+                console.log('Firebaseが利用できません。localStorageを使用します。');
+            }
+        } catch (error) {
+            console.log('Firebaseの設定でエラー:', error);
         }
     }
 
@@ -123,6 +139,9 @@ class StudentRegistration {
         console.log('addToTeacherQueueを呼び出します:', student);
         this.addToTeacherQueue(student);
         console.log('addToTeacherQueueの呼び出しが完了しました');
+        
+        // Firebaseにも保存（リアルタイム同期）
+        this.saveToFirebase(student);
 
         this.showSuccessPopup();
         
@@ -490,6 +509,29 @@ class StudentRegistration {
             }
         };
         document.head.appendChild(script);
+    }
+
+    // Firebaseにデータを保存
+    saveToFirebase(student) {
+        if (!this.database) {
+            console.log('Firebaseが利用できないため、localStorageのみを使用します');
+            return;
+        }
+        
+        try {
+            console.log('Firebaseにデータを保存:', student);
+            
+            // データベースに保存
+            const studentRef = this.database.ref('students/' + student.id);
+            studentRef.set(student).then(() => {
+                console.log('Firebaseへの保存が完了しました');
+            }).catch((error) => {
+                console.error('Firebaseへの保存でエラー:', error);
+            });
+            
+        } catch (error) {
+            console.error('Firebase保存でエラー:', error);
+        }
     }
 
     // デバッグ用: localStorageをクリア

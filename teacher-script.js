@@ -7,6 +7,7 @@ class TeacherManagement {
         this.completedCount = 0;
         this.isUpdating = false; // 更新中フラグ
         this.broadcastChannel = null;
+        this.database = null;
         this.init();
     }
 
@@ -20,6 +21,9 @@ class TeacherManagement {
         
         // BroadcastChannelを設定
         this.setupBroadcastChannel();
+        
+        // Firebaseを設定
+        this.setupFirebase();
         
         // URLパラメータから新しい生徒データを読み取り
         this.checkURLParameters();
@@ -45,6 +49,54 @@ class TeacherManagement {
             console.log('BroadcastChannelを設定しました');
         } catch (error) {
             console.log('BroadcastChannelがサポートされていません:', error);
+        }
+    }
+
+    setupFirebase() {
+        try {
+            // Firebaseが利用可能かチェック
+            if (typeof firebase !== 'undefined' && firebase.database) {
+                this.database = firebase.database();
+                console.log('Firebaseデータベースを設定しました');
+                
+                // リアルタイムリスナーを設定
+                this.setupFirebaseListeners();
+            } else {
+                console.log('Firebaseが利用できません。localStorageを使用します。');
+            }
+        } catch (error) {
+            console.log('Firebaseの設定でエラー:', error);
+        }
+    }
+
+    setupFirebaseListeners() {
+        if (!this.database) return;
+        
+        try {
+            // 生徒データの変更を監視
+            const studentsRef = this.database.ref('students');
+            
+            studentsRef.on('child_added', (snapshot) => {
+                const student = snapshot.val();
+                console.log('Firebaseから新しい生徒データを受信:', student);
+                this.addStudentFromFirebase(student);
+            });
+            
+            studentsRef.on('child_changed', (snapshot) => {
+                const student = snapshot.val();
+                console.log('Firebaseから生徒データの変更を受信:', student);
+                this.updateStudentFromFirebase(student);
+            });
+            
+            studentsRef.on('child_removed', (snapshot) => {
+                const studentId = snapshot.key;
+                console.log('Firebaseから生徒データの削除を受信:', studentId);
+                this.removeStudentFromFirebase(studentId);
+            });
+            
+            console.log('Firebaseリスナーを設定しました');
+        } catch (error) {
+            console.error('Firebaseリスナーの設定でエラー:', error);
         }
     }
 
@@ -169,37 +221,57 @@ class TeacherManagement {
     addStudentFromURL(student) {
         try {
             console.log('URLからの生徒データを追加:', student);
-            
-            // 内容に応じて適切なキューに追加
-            switch (student.contentType) {
-                case '丸付け':
-                    this.markingQueue.push(student);
-                    console.log('丸付けリストに追加:', student.name);
-                    break;
-                case '質問':
-                    this.questionQueue.push(student);
-                    console.log('質問リストに追加:', student.name);
-                    break;
-                default:
-                    this.markingQueue.push(student);
-                    console.log('デフォルトで丸付けリストに追加:', student.name);
-            }
-            
-            // データを保存
-            this.saveData();
-            
-            // 表示を更新
-            this.updateDisplay();
-            
-            // 通知音を再生
-            this.playNotificationSound();
-            
-            // 通知メッセージを表示
-            this.showNotification(`${student.name}さんが登録されました！`, 'success');
-            
+            this.addStudentToQueue(student);
         } catch (error) {
             console.error('URLからの生徒データ追加でエラー:', error);
         }
+    }
+
+    addStudentFromFirebase(student) {
+        try {
+            console.log('Firebaseからの生徒データを追加:', student);
+            this.addStudentToQueue(student);
+        } catch (error) {
+            console.error('Firebaseからの生徒データ追加でエラー:', error);
+        }
+    }
+
+    addStudentToQueue(student) {
+        // 重複チェック
+        const existingStudent = [...this.markingQueue, ...this.retryQueue, ...this.questionQueue]
+            .find(s => s.id === student.id);
+        
+        if (existingStudent) {
+            console.log('既存の生徒データが存在します:', student.name);
+            return;
+        }
+        
+        // 内容に応じて適切なキューに追加
+        switch (student.contentType) {
+            case '丸付け':
+                this.markingQueue.push(student);
+                console.log('丸付けリストに追加:', student.name);
+                break;
+            case '質問':
+                this.questionQueue.push(student);
+                console.log('質問リストに追加:', student.name);
+                break;
+            default:
+                this.markingQueue.push(student);
+                console.log('デフォルトで丸付けリストに追加:', student.name);
+        }
+        
+        // データを保存（localStorage）
+        this.saveData();
+        
+        // 表示を更新
+        this.updateDisplay();
+        
+        // 通知音を再生
+        this.playNotificationSound();
+        
+        // 通知メッセージを表示
+        this.showNotification(`${student.name}さんが登録されました！`, 'success');
     }
 
     checkForUpdates() {
