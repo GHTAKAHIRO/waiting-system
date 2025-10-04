@@ -75,10 +75,10 @@ class AirtableDatabase {
     async testAirtableConnection() {
         try {
             console.log('🔍 Airtable接続テストを開始します...');
-            const url = `${this.airtableUrl}/${this.baseId}`;
-            console.log('🔍 Base URL:', url);
+            const testUrl = `${this.airtableUrl}/${this.baseId}/${this.tableId}?maxRecords=1`;
+            console.log('🔍 Test URL:', testUrl);
             
-            const response = await fetch(url, {
+            const response = await fetch(testUrl, {
                 headers: {
                     'Authorization': `Bearer ${this.apiKey}`,
                     'Content-Type': 'application/json'
@@ -89,8 +89,8 @@ class AirtableDatabase {
             
             if (response.ok) {
                 const result = await response.json();
-                console.log('✅ Base接続成功:', result);
-                console.log('📊 利用可能なテーブル:', result.tables?.map(t => ({ id: t.id, name: t.name })));
+                console.log('✅ Airtable接続テスト成功:', result);
+                console.log('📊 取得したレコード数:', result.records?.length || 0);
             } else {
                 const errorText = await response.text();
                 console.error('❌ Base接続エラー:', {
