@@ -360,5 +360,6 @@ class RealtimeDatabase {
     }
 }
 
-// グローバルインスタンス
-window.realtimeDatabase = new RealtimeDatabase();
+// グローバルインスタンス（設定が不完全なため無効化）
+// window.realtimeDatabase = new RealtimeDatabase();
+console.log('RealtimeDatabaseは設定が不完全なため無効化されています');

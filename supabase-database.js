@@ -369,5 +369,6 @@ class SupabaseDatabase {
     }
 }
 
-// グローバルインスタンス
-window.supabaseDatabase = new SupabaseDatabase();
+// グローバルインスタンス（設定が不完全なため無効化）
+// window.supabaseDatabase = new SupabaseDatabase();
+console.log('SupabaseDatabaseは設定が不完全なため無効化されています');
