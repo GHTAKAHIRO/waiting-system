@@ -281,25 +281,138 @@ class StudentRegistration {
             
             console.log('先生画面URLを生成:', teacherURL);
             
-            // ポップアップで先生画面を開く（または新しいタブ）
-            const popup = window.open(teacherURL, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-            
-            if (popup) {
-                console.log('先生画面を新しいタブで開きました');
-                
-                // 通知メッセージを表示
-                this.showNotification('先生画面を開きました。登録情報が反映されています。', 'success');
-                
-                // QRコードも表示（フォールバック用）
-                this.showQRCodeForTeacher(teacherURL);
-            } else {
-                console.log('ポップアップがブロックされました');
-                this.showNotification('ポップアップがブロックされました。手動で先生画面を開いてください。', 'error');
-            }
+            // 複数の方法で先生画面を開く（カスペルスキー対策）
+            this.openTeacherScreenMultipleWays(teacherURL);
             
         } catch (error) {
             console.error('URL共有でエラー:', error);
+            // フォールバック：シンプルな通知
+            this.showSimpleNotification(teacherURL);
         }
+    }
+
+    // 複数の方法で先生画面を開く（セキュリティソフト対策）
+    openTeacherScreenMultipleWays(teacherURL) {
+        let success = false;
+        
+        // 方法1: window.open
+        try {
+            const popup = window.open(teacherURL, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+            if (popup && !popup.closed) {
+                console.log('方法1: window.openで成功');
+                success = true;
+            }
+        } catch (error) {
+            console.log('方法1: window.openが失敗:', error);
+        }
+        
+        // 方法2: location.href（同じタブ）
+        if (!success) {
+            try {
+                setTimeout(() => {
+                    window.location.href = teacherURL;
+                    console.log('方法2: location.hrefで実行');
+                    success = true;
+                }, 100);
+            } catch (error) {
+                console.log('方法2: location.hrefが失敗:', error);
+            }
+        }
+        
+        // 方法3: 手動操作を促す
+        if (!success) {
+            console.log('方法3: 手動操作を促す');
+            this.showManualInstructionPopup(teacherURL);
+        } else {
+            // QRコードも表示（フォールバック用）
+            this.showQRCodeForTeacher(teacherURL);
+        }
+    }
+
+    // 手動操作を促すポップアップ
+    showManualInstructionPopup(teacherURL) {
+        const popup = document.createElement('div');
+        popup.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            font-family: Arial, sans-serif;
+        `;
+        
+        popup.innerHTML = `
+            <div style="
+                background: white;
+                padding: 40px;
+                border-radius: 15px;
+                text-align: center;
+                max-width: 500px;
+                margin: 20px;
+            ">
+                <h2 style="color: #dc3545; margin-bottom: 20px;">⚠️ セキュリティソフトがブロックしています</h2>
+                <p style="margin-bottom: 20px; font-size: 16px;">
+                    自動で先生画面を開けませんでした。<br>
+                    以下の手順で先生画面を開いてください：
+                </p>
+                <ol style="text-align: left; margin-bottom: 30px; font-size: 14px;">
+                    <li style="margin-bottom: 10px;">下のURLをコピーしてください</li>
+                    <li style="margin-bottom: 10px;">新しいタブを開いてください</li>
+                    <li style="margin-bottom: 10px;">URLを貼り付けてEnterキーを押してください</li>
+                </ol>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <input type="text" value="${teacherURL}" readonly style="
+                        width: 100%;
+                        padding: 10px;
+                        border: 1px solid #ddd;
+                        border-radius: 5px;
+                        font-size: 12px;
+                        background: white;
+                    " onclick="this.select()">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="navigator.clipboard.writeText('${teacherURL}'); this.textContent='コピー完了!'; setTimeout(() => this.textContent='URLをコピー', 2000);" style="
+                        background: #007bff;
+                        color: white;
+                        border: none;
+                        padding: 12px 24px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 600;
+                    ">URLをコピー</button>
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
+                        background: #6c757d;
+                        color: white;
+                        border: none;
+                        padding: 12px 24px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 600;
+                    ">閉じる</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(popup);
+        
+        // 10秒後に自動で閉じる
+        setTimeout(() => {
+            if (document.body.contains(popup)) {
+                document.body.removeChild(popup);
+            }
+        }, 30000);
+    }
+
+    // シンプルな通知（最後の手段）
+    showSimpleNotification(teacherURL) {
+        alert(`登録完了！\n\n先生画面を開くには以下のURLをコピーしてください：\n\n${teacherURL}`);
     }
 
     // QRコードを表示して先生画面のURLを共有

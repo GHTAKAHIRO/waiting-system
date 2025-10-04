@@ -122,14 +122,37 @@ class TeacherManagement {
             if (newStudentData && timestamp) {
                 console.log('URLパラメータから新しい生徒データを検出:', newStudentData);
                 
-                // Base64デコード
-                const studentData = JSON.parse(atob(newStudentData));
-                studentData.addedAt = new Date(studentData.addedAt);
+                // Base64デコード（複数回試行）
+                let studentData = null;
+                let attempts = 0;
+                const maxAttempts = 3;
                 
-                console.log('デコードされた生徒データ:', studentData);
+                while (!studentData && attempts < maxAttempts) {
+                    attempts++;
+                    try {
+                        studentData = JSON.parse(atob(newStudentData));
+                        studentData.addedAt = new Date(studentData.addedAt);
+                        console.log('デコードされた生徒データ:', studentData);
+                        break;
+                    } catch (decodeError) {
+                        console.log(`デコード試行 ${attempts} が失敗:`, decodeError);
+                        if (attempts < maxAttempts) {
+                            // 少し待ってから再試行
+                            setTimeout(() => {}, 100);
+                        }
+                    }
+                }
                 
-                // データをキューに追加
-                this.addStudentFromURL(studentData);
+                if (studentData) {
+                    // データをキューに追加
+                    this.addStudentFromURL(studentData);
+                    
+                    // 成功通知を表示
+                    this.showNotification('新しい生徒が登録されました！', 'success');
+                } else {
+                    console.error('生徒データのデコードに失敗しました');
+                    this.showNotification('生徒データの読み込みに失敗しました', 'error');
+                }
                 
                 // URLをクリーンアップ（パラメータを削除）
                 const cleanURL = window.location.pathname;
@@ -139,6 +162,7 @@ class TeacherManagement {
             }
         } catch (error) {
             console.error('URLパラメータの処理でエラー:', error);
+            this.showNotification('データ処理中にエラーが発生しました', 'error');
         }
     }
 
