@@ -163,9 +163,6 @@ class StudentRegistration {
 
         this.showSuccessPopup();
         
-        // 共有URL方式でデータを共有（確実な方法）
-        this.createSharedURL(student);
-        
         // フォームをリセット
         this.resetForm();
     }
@@ -298,7 +295,8 @@ class StudentRegistration {
         }
     }
 
-    // 共有URL方式でデータを共有（確実な方法）
+    // URL共有機能は削除（Airtableクラウド同期を使用）
+    /*
     createSharedURL(student) {
         try {
             // データをBase64エンコード（日本語対応）
@@ -511,6 +509,7 @@ class StudentRegistration {
         };
         document.head.appendChild(script);
     }
+    */
 
     // Firebaseにデータを保存
     saveToFirebase(student) {

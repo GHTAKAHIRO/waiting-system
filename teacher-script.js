@@ -25,8 +25,7 @@ class TeacherManagement {
         // Firebaseを設定
         this.setupFirebase();
         
-        // URLパラメータから新しい生徒データを読み取り
-        this.checkURLParameters();
+        // URLパラメータ機能は削除（Airtableクラウド同期を使用）
         
         // フォールバック: 定期的にデータを更新（生徒からの新しい登録を検知）
         setInterval(() => {
