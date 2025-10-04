@@ -199,8 +199,8 @@ class TeacherManagement {
                     // データをキューに追加
                     this.addStudentFromURL(studentData);
                     
-                    // 成功通知を表示
-                    this.showNotification('新しい生徒が登録されました！', 'success');
+                    // 成功通知を表示（目立つように）
+                    this.showBigNotification(`${studentData.name}さんが登録されました！`, 'success');
                 } else {
                     console.error('生徒データのデコードに失敗しました');
                     this.showNotification('生徒データの読み込みに失敗しました', 'error');
@@ -750,6 +750,49 @@ class TeacherManagement {
         }, 3000);
     }
 
+    // 大きな通知（新しい生徒登録用）
+    showBigNotification(message, type = 'success') {
+        const notification = document.createElement('div');
+        const bgColor = type === 'error' ? '#dc3545' : '#28a745';
+        
+        notification.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: ${bgColor};
+            color: white;
+            padding: 30px 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 10000;
+            font-weight: 600;
+            font-size: 18px;
+            text-align: center;
+            animation: bigNotificationIn 0.5s ease-out;
+            max-width: 400px;
+            word-wrap: break-word;
+        `;
+        notification.innerHTML = `
+            <div style="font-size: 2em; margin-bottom: 15px;">🎉</div>
+            <div>${message}</div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // 通知音を再生
+        this.playNotificationSound();
+        
+        setTimeout(() => {
+            notification.style.animation = 'bigNotificationOut 0.5s ease-in';
+            setTimeout(() => {
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
+            }, 500);
+        }, 4000);
+    }
+
     saveData() {
         const data = {
             markingQueue: this.markingQueue,
@@ -848,6 +891,55 @@ class TeacherManagement {
         this.saveData();
     }
 }
+
+// CSS アニメーションを追加
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+    
+    @keyframes bigNotificationIn {
+        from {
+            transform: translate(-50%, -50%) scale(0.5);
+            opacity: 0;
+        }
+        to {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes bigNotificationOut {
+        from {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+        to {
+            transform: translate(-50%, -50%) scale(0.5);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
 
 // アプリケーションを初期化
 let teacherManagement;

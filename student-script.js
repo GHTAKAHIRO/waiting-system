@@ -145,8 +145,8 @@ class StudentRegistration {
 
         this.showSuccessPopup();
         
-        // URLパラメータでデータを共有（より確実な方法）
-        this.shareDataViaURL(student);
+        // 共有URL方式でデータを共有（確実な方法）
+        this.createSharedURL(student);
         
         // フォームをリセット
         this.resetForm();
@@ -280,8 +280,8 @@ class StudentRegistration {
         }
     }
 
-    // URLパラメータでデータを共有
-    shareDataViaURL(student) {
+    // 共有URL方式でデータを共有（確実な方法）
+    createSharedURL(student) {
         try {
             // データをBase64エンコード
             const studentData = {
@@ -295,13 +295,13 @@ class StudentRegistration {
             
             const encodedData = btoa(JSON.stringify(studentData));
             
-            // 先生画面のURLを生成（新しいタブで開く）
+            // 先生画面のURLを生成
             const teacherURL = `teacher.html?newStudent=${encodedData}&timestamp=${Date.now()}`;
             
             console.log('先生画面URLを生成:', teacherURL);
             
-            // 複数の方法で先生画面を開く（カスペルスキー対策）
-            this.openTeacherScreenMultipleWays(teacherURL);
+            // 共有URLポップアップを表示
+            this.showSharedURLPopup(teacherURL, student);
             
         } catch (error) {
             console.error('URL共有でエラー:', error);
@@ -310,46 +310,8 @@ class StudentRegistration {
         }
     }
 
-    // 複数の方法で先生画面を開く（セキュリティソフト対策）
-    openTeacherScreenMultipleWays(teacherURL) {
-        let success = false;
-        
-        // 方法1: window.open
-        try {
-            const popup = window.open(teacherURL, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-            if (popup && !popup.closed) {
-                console.log('方法1: window.openで成功');
-                success = true;
-            }
-        } catch (error) {
-            console.log('方法1: window.openが失敗:', error);
-        }
-        
-        // 方法2: location.href（同じタブ）
-        if (!success) {
-            try {
-                setTimeout(() => {
-                    window.location.href = teacherURL;
-                    console.log('方法2: location.hrefで実行');
-                    success = true;
-                }, 100);
-            } catch (error) {
-                console.log('方法2: location.hrefが失敗:', error);
-            }
-        }
-        
-        // 方法3: 手動操作を促す
-        if (!success) {
-            console.log('方法3: 手動操作を促す');
-            this.showManualInstructionPopup(teacherURL);
-        } else {
-            // QRコードも表示（フォールバック用）
-            this.showQRCodeForTeacher(teacherURL);
-        }
-    }
-
-    // 手動操作を促すポップアップ
-    showManualInstructionPopup(teacherURL) {
+    // 共有URLポップアップを表示
+    showSharedURLPopup(teacherURL, student) {
         const popup = document.createElement('div');
         popup.style.cssText = `
             position: fixed;
@@ -371,63 +333,82 @@ class StudentRegistration {
                 padding: 40px;
                 border-radius: 15px;
                 text-align: center;
-                max-width: 500px;
+                max-width: 600px;
                 margin: 20px;
             ">
-                <h2 style="color: #dc3545; margin-bottom: 20px;">⚠️ セキュリティソフトがブロックしています</h2>
-                <p style="margin-bottom: 20px; font-size: 16px;">
-                    自動で先生画面を開けませんでした。<br>
-                    以下の手順で先生画面を開いてください：
+                <h2 style="color: #28a745; margin-bottom: 20px;">✅ 登録完了！</h2>
+                <p style="margin-bottom: 30px; font-size: 16px;">
+                    <strong>${student.name}さん</strong>の登録が完了しました。<br>
+                    先生に以下のURLを送信してください：
                 </p>
-                <ol style="text-align: left; margin-bottom: 30px; font-size: 14px;">
-                    <li style="margin-bottom: 10px;">下のURLをコピーしてください</li>
-                    <li style="margin-bottom: 10px;">新しいタブを開いてください</li>
-                    <li style="margin-bottom: 10px;">URLを貼り付けてEnterキーを押してください</li>
-                </ol>
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
+                    <p style="margin-bottom: 15px; font-weight: bold; color: #333;">🔗 先生画面URL</p>
                     <input type="text" value="${teacherURL}" readonly style="
                         width: 100%;
-                        padding: 10px;
-                        border: 1px solid #ddd;
-                        border-radius: 5px;
-                        font-size: 12px;
+                        padding: 15px;
+                        border: 2px solid #007bff;
+                        border-radius: 8px;
+                        font-size: 14px;
                         background: white;
+                        color: #333;
                     " onclick="this.select()">
                 </div>
-                <div style="display: flex; gap: 10px; justify-content: center;">
-                    <button onclick="navigator.clipboard.writeText('${teacherURL}'); this.textContent='コピー完了!'; setTimeout(() => this.textContent='URLをコピー', 2000);" style="
-                        background: #007bff;
+                
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <button onclick="navigator.clipboard.writeText('${teacherURL}'); this.textContent='✅ コピー完了!'; setTimeout(() => this.textContent='📋 URLをコピー', 3000);" style="
+                        background: #28a745;
                         color: white;
                         border: none;
-                        padding: 12px 24px;
+                        padding: 15px 25px;
                         border-radius: 8px;
                         cursor: pointer;
                         font-size: 14px;
                         font-weight: 600;
-                    ">URLをコピー</button>
+                        min-width: 120px;
+                    ">📋 URLをコピー</button>
+                    
+                    <button onclick="window.open('${teacherURL}', '_blank'); this.textContent='✅ 開きました!'; setTimeout(() => this.textContent='🖥️ 先生画面を開く', 3000);" style="
+                        background: #007bff;
+                        color: white;
+                        border: none;
+                        padding: 15px 25px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 600;
+                        min-width: 120px;
+                    ">🖥️ 先生画面を開く</button>
+                    
                     <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
                         background: #6c757d;
                         color: white;
                         border: none;
-                        padding: 12px 24px;
+                        padding: 15px 25px;
                         border-radius: 8px;
                         cursor: pointer;
                         font-size: 14px;
                         font-weight: 600;
+                        min-width: 120px;
                     ">閉じる</button>
                 </div>
+                
+                <p style="margin-top: 20px; font-size: 12px; color: #666;">
+                    💡 ヒント：URLをコピーして先生に送信するか、直接先生画面を開いてください
+                </p>
             </div>
         `;
         
         document.body.appendChild(popup);
         
-        // 10秒後に自動で閉じる
+        // 30秒後に自動で閉じる
         setTimeout(() => {
             if (document.body.contains(popup)) {
                 document.body.removeChild(popup);
             }
         }, 30000);
     }
+
 
     // シンプルな通知（最後の手段）
     showSimpleNotification(teacherURL) {
